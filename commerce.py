@@ -9,6 +9,7 @@ def main():
 		for row in reader:
 			data.append(row)
 
+	# header
 	del data[0]
 
 	with open('koinly.csv', 'w') as f:
@@ -16,19 +17,36 @@ def main():
 		writer.writerow(['Date', 'Sent Amount', 'Sent Currency', 'Received Amount', 'Received Currency', 'Fee Amount', 'Fee Currency', 'Label', 'Description', 'TxHash'])
 
 		for i in data:
-			date = i[0]
+			completed = i[0]
+			date = i[1]
 			type = i[2]
 			invoice = i[3]
-			currency = i[8]
-			price = i[9]
-			amount = i[10]
+
+			subtotal = i[10]
+			amount = subtotal[:subtotal.find(' ')]
+			currency = subtotal[subtotal.find(' ') + 1:]
+
+			cb_fee = i[14]
+			if cb_fee:
+				cb_fee = cb_fee[:cb_fee.find(' ')]
+
+			net_fee = i[16]
+			if net_fee:
+				net_fee = net_fee[:net_fee.find(' ')]
+
+			homestead = i[22]
+
 			tx = i[-1]
 
 			if type == 'Product Checkout':
-				row = [date, '', '', amount[:amount.find(' ')], currency, '', '', 'income', invoice, tx]
+				row = [date, '', '', amount, currency, cb_fee, currency, 'income', invoice, tx]
 				writer.writerow(row)
-			elif type == 'Withdrawal':
-				row = [date, '-' + amount[:amount.find(' ')], currency, '', '', '', '', '', 'Withdrawal', tx]
+
+				if homestead:
+					row = [completed, '-' + str(float(amount) - float(cb_fee)), currency, '', '', net_fee, currency, '', 'withdrawal', '']
+					writer.writerow(row)
+			elif type == 'Withdrawal' or type == 'Refund':
+				row = [date, '-' + amount, currency, '', '', net_fee, currency, '', 'withdrawal', tx]
 				writer.writerow(row)
 			else:
 				print('Unsupported transaction type %s' % (type))
